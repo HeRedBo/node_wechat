@@ -1,7 +1,7 @@
 {
   "name": "node_webchat",
   "version": "1.0.0",
-  "description": "",
+  "description": "webchat project",
   "main": "app.js",
   "dependencies": {
     "koa": "^1.2.1"
