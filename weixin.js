@@ -27,7 +27,7 @@ var reply = function* (next) {
         }
     } else if(msgType === 'text'){
         var content = message.Content ;
-        var reply = '额，你说得' +message.content + '太复杂了';
+        var reply = '额，你说得话太复杂了';
         if(content == 1 ) {
             reply = '一生只爱一个人！';
         } else if(content == 2) {
@@ -73,6 +73,82 @@ var reply = function* (next) {
                 hq_music_url : '',
                 thumbmediaid : data.media_id,
             }
+        } else if (content == 8 ) {
+             var data = yield wechatApi.uploadMatertial('image',__dirname + '/1427424821605.jpg',{type:'image'});
+             reply = {
+                type : 'image',
+                mediaId : data.media_id,
+            }
+        } else if (content == 9 ) {
+             var data = yield wechatApi.uploadMatertial('video',__dirname + '/1102132008163f8e4ab399914.mp4',{type:"video,",description : '{"title":"Not zuo not die why you try","introduction": "Girl, Are You OK ? "}'});
+             reply = {
+                    type : 'video',
+                    title:'活该单身！一点也不懂的爱惜女生',
+                    description:'Girl, Are You OK ? ',
+                    mediaId:data.media_id,
+                }
+        } else if (content == 10 ) {
+            var picData = yield wechatApi.uploadMatertial('image',__dirname + '/1427424821605.jpg',{});
+            var picData = {};
+            picData.media_id = 'kPhLaqRoUJR40V1U3SMKtajmrQOfmEpM9YRMj1OHYuY';
+            var media = {
+                "articles": [{
+                   "title": '听海 Voice of sea',
+                   "thumb_media_id": picData.media_id,
+                   "author": 'Anoxia',
+                   "digest": "在海边，我的心情是平静的，即使海浪波涛汹涌，我也能随着暖暖的海风吹过而风平浪静，...",
+                   "show_cover_pic": 1,
+                   "content": '舜发于畎亩之中，傅说举于版筑之间，胶鬲举于鱼盐之中，管夷吾举于士，孙叔敖举于海，百里奚举于市。故天将降大任于斯人也，必先若其心志，劳其筋骨，饿其体肤，空乏其身，行拂乱其所为，所以动心忍性，曾益其所不能。人恒过，然后能改；困于心，衡于虑，而后作；徵于色，发于声，而后喻。入则无法家拂士，出则无敌国外患者，国恒亡。然后知生于忧患而死于安乐也。',
+                   "content_source_url": 'http://www.sanwen.net/subject/3856481/'
+                },   
+             ]
+            }
+            var news = [];
+            data = yield wechatApi.uploadMatertial('news',media,{});
+            data = yield wechatApi.fetchMatertial(data.media_id,'news',{});
+            var items = data.new_itme;
+            var news = [];
+            items.forEach(function(item){
+                news.push({
+                    title : item.title,
+                    description : item.digest,
+                    picUrl : item.thumb_media_id,
+                    url : item.url,
+                });
+            });
+            reply = news;
+        } else if(content == 11) {
+            var counts = yield wechatApi.countMatertial();
+            if(!('errcode' in counts))  {
+                reply = '视频素材数量为：' + counts.video_count + '\r\n';
+                reply += '声音素材数量为：' + counts.voice_count + '\r\n';
+                reply += '图片素材数量为：' + counts.image_count + '\r\n';
+                reply += '图文素材数量为：' + counts.news_count;
+            }
+           
+        } else if(content == 12) {
+            var result = yield [
+                wechatApi.batchMatertial({
+                    type: 'image',
+                    offset : 0,
+                    count: 10,
+                }), wechatApi.batchMatertial({
+                    type: 'video',
+                    offset : 0,
+                    count: 10,
+                }),
+                wechatApi.batchMatertial({
+                    type: 'voice',
+                    offset : 0,
+                    count: 10,
+                }),
+                wechatApi.batchMatertial({
+                    type: 'news',
+                    offset : 0,
+                    count: 10,
+                }),
+            ];
+            console.log(JSON.stringify(result));
         }
         this.body = reply;
     }
