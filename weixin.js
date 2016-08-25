@@ -23,7 +23,7 @@ var reply = function* (next) {
             console.log('关注后扫描二维码' + message.EventKey + ' ' + message.Tiket);
             this.body = '看你扫面了一下二维码';
         } else if(message.Event === 'VIEW') {
-            this.body = '你点击了菜单中的链接 :' + message.EventKey; 
+            this.body = '你点击了菜单中的链接 :' + message.EventKey;
         }
     } else if(msgType === 'text'){
         var content = message.Content ;
@@ -100,7 +100,7 @@ var reply = function* (next) {
                    "show_cover_pic": 1,
                    "content": '舜发于畎亩之中，傅说举于版筑之间，胶鬲举于鱼盐之中，管夷吾举于士，孙叔敖举于海，百里奚举于市。故天将降大任于斯人也，必先若其心志，劳其筋骨，饿其体肤，空乏其身，行拂乱其所为，所以动心忍性，曾益其所不能。人恒过，然后能改；困于心，衡于虑，而后作；徵于色，发于声，而后喻。入则无法家拂士，出则无敌国外患者，国恒亡。然后知生于忧患而死于安乐也。',
                    "content_source_url": 'http://www.sanwen.net/subject/3856481/'
-                },   
+                },
              ]
             }
             var news = [];
@@ -125,7 +125,7 @@ var reply = function* (next) {
                 reply += '图片素材数量为：' + counts.image_count + '\r\n';
                 reply += '图文素材数量为：' + counts.news_count;
             }
-           
+
         } else if(content == 12) {
             var result = yield [
                 wechatApi.batchMatertial({
@@ -149,10 +149,54 @@ var reply = function* (next) {
                 }),
             ];
             console.log(JSON.stringify(result));
+        }else if(content == 13) {
+            var name = '';
+            var tag = yield wechatApi.createTags(name);
+             if(!('errcode' in tag)) {
+                reply = '标签创建成功！标签名称为：' + tag.tag.name;
+             }
+            console.log(JSON.stringify(tag))
+        } else if(content == 14) {
+            var tags = yield wechatApi.fetchTags();
+            console.log(JSON.stringify(tags))
+        } else if(content == 15) {
+            var tagId  = 102
+            var res = yield wechatApi.deleteTags(tagId);
+            console.log(JSON.stringify(res));
+        } else if(content == 16) {
+            var tagId = 104;
+            var name  = '纯真的梦';
+            var res = yield wechatApi.updateTag(tagId,name);
+            console.log(JSON.stringify(res))
+
+        } else if(content == 17) {
+            // 为用户打标签
+            var tagId = 104;
+            // var openIds = [
+            //     'o5uYfxOaM0uZwMBPjqrHmuJG0blA',
+            //     'o5uYfxEaxTgfd-3fzjnNtC_izADY',
+            //     'o5uYfxM4jd3lMH07bGelMnjs7Rgc',
+            //     'o5uYfxOkXGhPDUZ8Eqf0LwNX37Wg',
+            //     'o5uYfxCGX26gWEbqXM6SHGDYbeYs',
+            // ];
+            var opendIds = [
+                'o5uYfxEsScVxrI_SGxdfVakKR4BY',
+            ];
+            var res = yield wechatApi.Batchtag(tagId,name);
+            console.log(JSON.stringify(res))
+
+        } else if (content == 18) {
+            var tagId = 100;
+            var res = yield wechatApi.fetchTagUsers(tagId);
+            console.log(JSON.stringify(res))
+        } else if(content == 19) {
+            var openId = 'o5uYfxM4jd3lMH07bGelMnjs7Rgc';
+            var res = yield wechatApi.fetchUserTag(openId);
+            console.log(JSON.stringify(res))
         }
         this.body = reply;
     }
     yield  next;
-} 
+}
 
 module.exports.reply  = reply;
