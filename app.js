@@ -5,7 +5,7 @@ var path   = require('path');
 var global = require('./webchat/global');
 var util   = require('./libs/util');
 var config = require('./config/config');
-var weixin = require('./weixin');
+var weixin = require('./wx/reply');
 var app = new Koa();
 
 app.use(global(config.wechat, weixin.reply));

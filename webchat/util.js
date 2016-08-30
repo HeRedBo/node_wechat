@@ -2,15 +2,15 @@
 var xml2js = require('xml2js');
 var Promise = require('bluebird');
 var tpl = require('./tpl');
+
 module.exports.parseXMLAsync = function(xml) {
     return new Promise(function(resolve, reject){
-        xml2js.parseString(xml,{trim:true}, function(err,content){
+        xml2js.parseString(xml,{trim:true}, function(err, content) {
             if(err) reject(err);
             else resolve(content);
         });
     });
 }
-
 
 function formatMessage(result) {
     var message = {};
@@ -50,17 +50,16 @@ module.exports.tpl = function(content, message) {
     var type = 'text';
     var FromUserName = message.FromUserName;
     var ToUserName = message.ToUserName;
-    
+
     if(Array.isArray(content)) {
         type = 'news';
     }
-
-    type              = content.type || type;
+    type              = content.type || type ;
     info.content      = content;
     info.CreateTime   = new Date().getTime();
     info.msgType      = type;
     info.ToUserName   = FromUserName;
     info.FromUserName = ToUserName;
-    
+
     return tpl.compiled(info);
 };
