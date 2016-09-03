@@ -4,8 +4,11 @@ var Promise = require('bluebird');
 var _       = require('lodash');
 var request = Promise.promisify(require('request'));
 var fs      = require('fs');
+
 var util    = require('./util');
 var prefix  = 'https://api.weixin.qq.com/cgi-bin/';
+var  semanticUrl = 'https://api.weixin.qq.com/semantic/semproxy/search?';
+
 var api     = {
     accessToken : prefix + 'token?grant_type=client_credential',
     temporary : {
@@ -23,30 +26,41 @@ var api     = {
         batch         : prefix + 'material/batchget_material?',
     },
     tags :  {
-        create  : prefix +  'tags/create?',
-        fetch   : prefix +  'tags/get?',
-        update  : prefix +  'tags/update?',
-        del     : prefix +  'tags/delete?',
+        create        : prefix +  'tags/create?',
+        fetch         : prefix +  'tags/get?',
+        update        : prefix +  'tags/update?',
+        del           : prefix +  'tags/delete?',
         fetchTagUsers : prefix +  'user/tag/get?',
         batchtag      : prefix +  'tags/members/batchtagging?',
         batchuntag    : prefix +  'tags/members/batchuntagging?',
         getidlist     : prefix +  'tags/getidlist?',
     },
     mass : {
-        group   : prefix + 'message/mass/sendall?',
-        openid  : prefix + 'message/mass/send?',
-        del     : prefix + 'message/mass/delete?',
-        preview : prefix + 'message/mass/preview?',
-        check   : prefix   + 'message/mass/get?',
+        group         : prefix + 'message/mass/sendall?',
+        openid        : prefix + 'message/mass/send?',
+        del           : prefix + 'message/mass/delete?',
+        preview       : prefix + 'message/mass/preview?',
+        check         : prefix   + 'message/mass/get?',
     },
     menu : {
-        create  : prefix + 'menu/create?',
-        get     : prefix + 'menu/get?',
-        del     : prefix + 'menu/delete?',
-        current : prefix + 'get_current_selfmenu_info?',
+        create       : prefix + 'menu/create?',
+        get          : prefix + 'menu/get?',
+        del          : prefix + 'menu/delete?',
+        current      : prefix + 'get_current_selfmenu_info?',
+    },
+    qrcode : {
+        create : prefix + 'qrcode/create?' ,
+        show   : prefix + 'showqrcode?'
+    },
+    shortUrl :  {
+        create : prefix + 'shorturl?'
+    },
+    ticket : {
+        get : prefix + 'ticket/getticket?',
     }
 
 };
+
 
 function Wechat(opts) {
     var that             = this;
@@ -54,9 +68,12 @@ function Wechat(opts) {
     this.appSecret       = opts.appSecret;
     this.getAccessToken  = opts.getAccessToken;
     this.saveAccessToken = opts.saveAccessToken;
+    this.getTicket       = opts.getTicket;
+    this.saveTicket      = opts.saveTicket;
     this.fetchAccessToken();
 }
 
+/** 获取全局票据 ccess_token **/
 Wechat.prototype.fetchAccessToken = function(data){
     var that = this;
     if(this.access_token && this.expires_in) {
@@ -64,27 +81,28 @@ Wechat.prototype.fetchAccessToken = function(data){
             return new Promise.resolve(this);
         }
     }
-    this.getAccessToken ()
-        .then(function(data){
-            try {
-                data = JSON.parse(data);
-            } catch(e) {
-                return that.updateAccessToken();
-            }
+    return this.getAccessToken ()
+    .then(function(data){
+        try {
+            data = JSON.parse(data);
+        } catch(e) {
+            return that.updateAccessToken();
+        }
 
-            if(that.isValidAccessToken(data)) {
-                return new Promise.resolve(data);
-            } else {
-                return that.updateAccessToken();
-            }
-        })
-        .then(function(data) {
-            that.access_token = data.access_token;
-            that.expires_in   = data.expires_in;
-            that.saveAccessToken(data);
+        if(that.isValidAccessToken(data)) {
             return new Promise.resolve(data);
-        });
+        } else {
+            return that.updateAccessToken();
+        }
+    })
+    .then(function(data) {
+        that.access_token = data.access_token;
+        that.expires_in   = data.expires_in;
+        that.saveAccessToken(data);
+        return new Promise.resolve(data);
+    });
 }
+
 
 Wechat.prototype.isValidAccessToken = function(data){
 
@@ -115,6 +133,63 @@ Wechat.prototype.updateAccessToken = function() {
         });
     });
 }
+
+/** 获取js SDK tiket **/
+Wechat.prototype.fetchTiket = function(access_token) {
+    var that = this;
+    return this.getTicket ()
+    .then(function(data){
+        try {
+            data = JSON.parse(data);
+        } catch(e) {
+            return that.updateTicket();
+        }
+
+        if(that.isValidTicket(data)) {
+            return  Promise.resolve(data);
+        } else {
+            return that.updateTicket(access_token);
+        }
+    })
+    .then(function(data) {
+        that.saveTicket(data);
+        return  Promise.resolve(data);
+    });
+}
+
+/* 更新 jsapi_ticket */
+Wechat.prototype.updateTicket = function(access_token) {
+    var url = api.ticket.get + 'access_token=' + access_token + '&type=jsapi';
+
+    return new Promise(function(resolve, reject) {
+        request({url:url,json:true}).then(function(response){
+            var data = response.body;
+            var now = (new Date().getTime());
+            var expires_in = now + (data.expires_in - 10) * 1000;
+            data.expires_in = expires_in;
+            resolve(data);
+        });
+    });
+}
+
+/* 验证 jsapi_ticket */
+Wechat.prototype.isValidTicket = function(data){
+
+    if(!data || !data.ticket || !data.expires_in) {
+        return false;
+    }
+
+    var ticket       = data.ticket;
+    var expires_in   = data.expires_in;
+    var now          = (new Date().getTime());
+
+    if(ticket && now < expires_in) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 
 Wechat.prototype.reply = function() {
     var content = this.body;
@@ -746,7 +821,6 @@ Wechat.prototype.getCurrentMenu = function() {
         that.fetchAccessToken()
         .then(function(data) {
             var url = api.menu.current + 'access_token=' + data.access_token;
-            console.log(url);
             request({method : 'GET', url:url, json:true})
                 .then(function(response){
                     var _data = response.body;
@@ -754,6 +828,109 @@ Wechat.prototype.getCurrentMenu = function() {
                         resolve(_data);
                     } else{
                         throw new Error('get current menu fails');
+                    }
+            })
+            .catch(function(err){
+                reject(err);
+            });
+        });
+    });
+}
+
+/* 生成二维码 */
+Wechat.prototype.createQrcode = function(qr) {
+    var that = this;
+    return new Promise(function(resolve, reject) {
+        that.fetchAccessToken()
+        .then(function(data) {
+            var url = api.qrcode.create + 'access_token=' + data.access_token;
+
+            request({method : 'POST', url:url, body : qr, json:true})
+                .then(function(response){
+                    var _data = response.body;
+                    if(_data) {
+                        resolve(_data);
+                    } else{
+                        throw new Error('Create qrcode fails');
+                    }
+            })
+            .catch(function(err){
+                reject(err);
+            });
+        });
+    });
+}
+
+/* 展示微信二维码 */
+Wechat.prototype.showQrcode = function(ticket) {
+    var that = this;
+    return new Promise(function(resolve, reject) {
+        that.fetchAccessToken()
+        .then(function(data) {
+            var url = api.qrcode.show + 'ticket=' + encodeURI(ticket);
+
+            request({method : 'GET', url:url,json:true})
+                .then(function(response){
+                    var _data = response.body;
+                    if(_data) {
+                        resolve(_data);
+                    } else{
+                        throw new Error('show qrcode fails');
+                    }
+            })
+            .catch(function(err){
+                reject(err);
+            });
+        });
+    });
+}
+
+/* 展示微信二维码 */
+Wechat.prototype.showQrcode2 = function(ticket) {
+    return api.qrcode.show + 'ticket=' + encodeURI(ticket);
+}
+
+/* 短连接生成方法 */
+Wechat.prototype.creatShortUrl = function(action , url) {
+    action = action || 'long2short';
+    var that = this;
+    return new Promise(function(resolve, reject) {
+        that.fetchAccessToken()
+        .then(function(data) {
+            var url = api.shortUrl.create + 'access_token=' + data.access_token;
+            var form = { action : action, url:url };
+
+            request({method : 'POST', url:url, body : form, json:true})
+                .then(function(response){
+                    var _data = response.body;
+                    if(_data) {
+                        resolve(_data);
+                    } else{
+                        throw new Error('Create qrcode fails');
+                    }
+            })
+            .catch(function(err){
+                reject(err);
+            });
+        });
+    });
+}
+
+/** 语义接口 **/
+Wechat.prototype.semantic = function(semanticData){
+    var that = this;
+    return new Promise(function(resolve, reject) {
+        that.fetchAccessToken()
+        .then(function(data) {
+            var url = semanticUrl + 'access_token=' + data.access_token;
+            semanticData.appid = data.appID;
+            request({method : 'POST', url:url, body : semanticData, json:true})
+                .then(function(response){
+                    var _data = response.body;
+                    if(_data) {
+                        resolve(_data);
+                    } else{
+                        throw new Error('semantic search fails');
                     }
             })
             .catch(function(err){

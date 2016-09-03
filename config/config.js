@@ -2,6 +2,7 @@
 var util   = require('../libs/util');
 var path   = require('path');
 var wechat_file = path.join(__dirname,'./wechat.txt');
+var wechat_ticket_file = path.join(__dirname,'./wechat_ticket_file.txt');
 var config = {
     wechat : {
         appID: 'wxb694c94d706ab778',
@@ -13,7 +14,14 @@ var config = {
         saveAccessToken : function(data) {
             data = JSON.stringify(data);
             return util.writeFileSync(wechat_file, data);
-        }
+        },
+        getTicket : function() {
+            return util.readFileSync(wechat_ticket_file);
+        },
+        saveTicket : function(data) {
+            data = JSON.stringify(data);
+            return util.writeFileSync(wechat_ticket_file, data);
+        },
     }
 };
 module.exports = config;

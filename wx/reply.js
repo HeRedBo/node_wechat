@@ -56,7 +56,7 @@ var reply = function* (next) {
             console.log('图片数量' + message.SendPicsInfo.Count);
             console.log('图片列表' + message.SendPicsInfo.PicList);
             console.log('图片md5值' + message.SendPicsInfo.PicMd5Sum);
-           
+
             this.body = '你点击了菜单中的链接 :' + message.EventKey;
         } else if(message.Event === 'pic_weixin') {
             console.log(message.EventKey);
@@ -169,7 +169,7 @@ var reply = function* (next) {
                     url : item.url,
                 });
             });
-           
+
             reply = news;
         } else if(content == 11) {
             var counts = yield wechatApi.countMatertial();
@@ -291,7 +291,42 @@ var reply = function* (next) {
         } else if(content == 24) {
             var res = yield wechatApi.createMenu(menu)
             console.log(JSON.stringify(res));
-        } 
+        } else if(content == 25) {
+            var tempQr = {
+                expire_seconds : 604800,
+                action_name : 'QR_SCENE',
+                action_info : { scene : {'scene_id':'123456'} }
+            };
+            var premQr = {
+                action_name : 'QR_LIMIT_SCENE',
+                action_info : { scene :  { scene_id : 1234}}
+            };
+
+            var permStrQr = {
+                action_name : 'QR_LIMIT_STR_SCENE',
+                action_info : {scene : {scene_str : 'abcd'}}
+            };
+
+            var qr1 = yield wechatApi.createQrcode(tempQr);
+            var qr2 = yield wechatApi.createQrcode(premQr);
+            var qr3 = yield wechatApi.createQrcode(permStrQr);
+
+        } else if (content == 26) {
+            var longUrl  = 'http://www.github.com';
+            var shortUrl = yield wechatApi.creatShortUrl('long2short',longUrl);
+            console.log(shortUrl);
+        } else if(content == 27) {
+            var semanticData  = {
+                "query":"查一下明天从北京到上海的南航机票",
+                "city":"北京",
+                "category": "flight,hotel",
+                "uid":message.FromUserName,
+            }
+
+            var _semanticData = yield wechatApi.semantic(semanticData);
+            reply =  JSON.stringify(_semanticData);
+        }
+
         this.body = reply;
     } else if(msgType=== 'image') {
         this.body = '你发的图片真漂亮';
