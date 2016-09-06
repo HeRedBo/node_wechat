@@ -30,9 +30,10 @@ var tpl  = heredoc(function() {/*
 <body>
     <h1>点击标题，开始录音</h1>
     <p id="title"></p>
+    <div id="doctor"></div>
     <div id="poster"></div>
     <script src="http://zeptojs.com/zepto-docs.min.js"></script>
-    <script src="https://res.wx.qq.com/open/js/jweixin-1.0.0.js"></script>
+    <script src="http://res.wx.qq.com/open/js/jweixin-1.0.0.js"></script>
     <script type="text/javascript">
         wx.config({
             debug: true, // 开启调试模式,调用的所有api的返回值会在客户端alert出来，若要查看传入的参数，可以在pc端打开，参数信息会通过log打出，仅在pc端时才会打印。
@@ -47,6 +48,46 @@ var tpl  = heredoc(function() {/*
                 'translateVoice',
             ] // 必填，需要使用的JS接口列表，所有JS接口列表见附录2
         });
+
+        wx.ready( function() {
+            wx.checkJsApi({
+                jsApiList: ['onVoiceRecordEnd'],
+                    success: function(res) {
+                       console.log(res);
+                    }
+            });
+
+            var isRecording = false;
+            $('h1').on('tap', function() {
+                if(!isRecording) {
+                    isRecording = true;
+                    wx.startRecord({
+                        cancel : function () {
+                            window.alert('那就不搜索了啊！');
+                        }
+                    });
+                    return;
+                };
+
+                isRecording = false;
+                wx.stopRecord({
+                    success: function (res) {
+                        var localId = res.localId;
+                        wx.translateVoice({
+                            localId: localId , // 需要识别的音频的本地Id，由录音相关接口获得
+                            isShowProgressTips: 1, // 默认为1，显示进度提示
+                            success: function (res) {
+                                alert(res.translateResult); // 语音识别的 结果
+                                console(res.translateResult); // 语音识别的 结果
+                            }
+                        });
+                    }
+                });
+            });
+
+
+
+        });
     </script>
 </body>
 </html>
@@ -59,7 +100,7 @@ var createNonce = function () {
 
 // 生产时间戳
 var createTimestamp = function() {
-    return parseInt(new Date().getTime() / 1000,10);
+    return parseInt(new Date().getTime() / 1000,10) + '';
 }
 
 var _sign = function (noncestr, jsapi_ticket, timestamp, url) {
@@ -72,32 +113,31 @@ var _sign = function (noncestr, jsapi_ticket, timestamp, url) {
 
     var str = params.sort().join('&');
     var shasum  = crypto.createHash('sha1');
-    return shasum.update(str);
-
+    shasum.update(str);
+    return shasum.digest('hex');
 }
 
 function sign(ticket, url) {
-
     var timestamp = createTimestamp();
     var noncestr  = createNonce();
     var signature = _sign(noncestr, ticket, timestamp, url);
-
     return {
         timestamp : timestamp,
-        noncestr : noncestr,
+        noncestr  : noncestr,
         signature : signature,
     }
 }
 
 app.use(function *(next) {
     if(this.url.indexOf('/movie') > -1) {
-        var wechatApi = new Wetchat(config.wechat);
-        var data = yield wechatApi.fetchAccessToken();
+        var wechatApi    = new Wetchat(config.wechat);
+        var data         = yield wechatApi.fetchAccessToken();
         var access_token = data.access_token;
-        var ticket = yield wechatApi.fetchTiket(access_token);
-        var url = this.href;
-        var params = sign(ticket, url);
-        this.body = ejs.render(tpl,params);
+        var ticket       = yield wechatApi.fetchTiket(access_token);
+        var ticket       = ticket.ticket;
+        var url          = this.href.replace(':8000','');
+        var params       = sign(ticket, url);
+        this.body        = ejs.render(tpl,params);
         return next;
     }
 
