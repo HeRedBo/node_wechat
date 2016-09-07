@@ -30,6 +30,9 @@ var tpl  = heredoc(function() {/*
 <body>
     <h1>点击标题，开始录音</h1>
     <p id="title"></p>
+    <div id="content">
+
+    </div>
     <div id="doctor"></div>
     <div id="poster"></div>
     <script src="http://zeptojs.com/zepto-docs.min.js"></script>
@@ -46,6 +49,8 @@ var tpl  = heredoc(function() {/*
                 'stopRecord',
                 'onVoiceRecordEnd',
                 'translateVoice',
+                'onMenuShareAppMessage',
+                'previewImage',
             ] // 必填，需要使用的JS接口列表，所有JS接口列表见附录2
         });
 
@@ -56,6 +61,34 @@ var tpl  = heredoc(function() {/*
                        console.log(res);
                     }
             });
+
+            // 分享给好友
+            var shareContent = {
+                title: '哈哈！快来啊，一起和我来搜电影吧！', // 分享标题
+                desc: '语音搜电影 真的很好玩', // 分享描述
+                link: window.location.href, // 分享链接
+                imgUrl: 'https://www.baidu.com/img/baidu_jgylogo3.gif', // 分享图标
+                type: 'link', // 分享类型,music、video或link，不填默认为link
+                success: function () {
+                    // 用户确认分享后执行的回调函数
+                    window.alert('分享成功！');
+                },
+                cancel: function () {
+                    // 用户取消分享后执行的回调函数
+                    window.alert('分享失败');
+                }
+            }
+
+            wx.onMenuShareAppMessage(shareContent);
+
+            var slides = {
+                current: '',
+                urls: []
+            }
+            $('.poster').live('tap',function(){
+                wx.previewImage(slides);
+            });
+
 
             var isRecording = false;
             $('h1').on('tap', function() {
@@ -77,16 +110,58 @@ var tpl  = heredoc(function() {/*
                             localId: localId , // 需要识别的音频的本地Id，由录音相关接口获得
                             isShowProgressTips: 1, // 默认为1，显示进度提示
                             success: function (res) {
-                                alert(res.translateResult); // 语音识别的 结果
-                                console(res.translateResult); // 语音识别的 结果
+                                var result = res.translateResult;
+                                var content = '';
+                                $.ajax({
+                                    url: 'https://api.douban.com/v2/movie/search?q=' + result,
+                                    type: 'GET',
+                                    dataType: 'jsonp',
+                                    jsonp : 'callback',
+                                    success: function(data) {
+                                        var subjects = data.subjects;
+
+                                        // 如果有返回结果 组装页面数据结构
+                                        if(subjects) {
+                                            var flag = true;
+                                            subjects.forEach(function(item) {
+                                                content += '<div id="item">';
+                                                content += '<div id="name">'+ item.title+' ('+item.year+')</div>';
+                                                var directors = item.directors;
+                                                var director = '';
+                                                var tag = 0;
+                                                directors.forEach(function(direc){
+                                                    director += direc.name;
+                                                    if(tag > 0) {
+                                                        director += '/';
+                                                    }
+                                                    tag ++;
+                                                }) ;
+                                                content += '<div id="doctor">导演：'+ director +'</div>';
+                                                content += '<div class="poster"><img src= "'+ item.images.large+ '"/></div>';
+                                                content += '</div>';
+
+                                                if(flag) {
+                                                    shareContent.title = '我搜出来了好电影' + item.title;
+                                                    shareContent.imgUrl = item.images.small;
+                                                    slides.current = item.images.large ;
+                                                    flag = false;
+                                                }
+                                                slides.urls.push(item.images.large);
+                                            });
+
+                                        }
+                                        $('#content').html(content);
+                                        wx.onMenuShareAppMessage(shareContent);
+                                    },
+                                    error: function(xhr, type) {
+                                        alert('Ajax error!');
+                                    }
+                                });
                             }
                         });
                     }
                 });
             });
-
-
-
         });
     </script>
 </body>
