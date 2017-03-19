@@ -169,7 +169,8 @@ var tpl  = heredoc(function() {/*
 */});
 
 // 生产随机字符串
-var createNonce = function () {
+var createNonce = function () 
+{
     return Math.random().toString(36).substr(2,15);
 }
 
@@ -178,7 +179,8 @@ var createTimestamp = function() {
     return parseInt(new Date().getTime() / 1000,10) + '';
 }
 
-var _sign = function (noncestr, jsapi_ticket, timestamp, url) {
+var _sign = function (noncestr, jsapi_ticket, timestamp, url) 
+{
     var params = [
         'noncestr=' + noncestr,
         'jsapi_ticket=' + jsapi_ticket,
@@ -192,7 +194,8 @@ var _sign = function (noncestr, jsapi_ticket, timestamp, url) {
     return shasum.digest('hex');
 }
 
-function sign(ticket, url) {
+function sign(ticket, url) 
+{
     var timestamp = createTimestamp();
     var noncestr  = createNonce();
     var signature = _sign(noncestr, ticket, timestamp, url);
@@ -203,8 +206,10 @@ function sign(ticket, url) {
     }
 }
 
-app.use(function *(next) {
-    if(this.url.indexOf('/movie') > -1) {
+app.use(function *(next) 
+{
+    if(this.url.indexOf('/movie') > -1) 
+    {
         var wechatApi    = new Wetchat(config.wechat);
         var data         = yield wechatApi.fetchAccessToken();
         var access_token = data.access_token;
@@ -215,7 +220,6 @@ app.use(function *(next) {
         this.body        = ejs.render(tpl,params);
         return next;
     }
-
     yield next;
 });
 

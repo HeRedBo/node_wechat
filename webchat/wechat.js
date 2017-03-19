@@ -1,5 +1,4 @@
-'use strict'
-
+'use strict';
 var Promise = require('bluebird');
 var _       = require('lodash');
 var request = Promise.promisify(require('request'));
@@ -240,7 +239,6 @@ Wechat.prototype.uploadMatertial = function(type, material, permanent) {
                 options.formData = form;
             }
             console.log(options);
-            console.log('options');
             request(options)
             .then(function(response){
                 var _data = response.body;
@@ -917,7 +915,7 @@ Wechat.prototype.creatShortUrl = function(action , url) {
 }
 
 /** 语义接口 **/
-Wechat.prototype.semantic = function(semanticData){
+Wechat.prototype.semantic = function(semanticData) {
     var that = this;
     return new Promise(function(resolve, reject) {
         that.fetchAccessToken()
